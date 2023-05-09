@@ -1,35 +1,48 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { DragEvent } from "react";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const onDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    event.preventDefault();
+  };
 
+  const onDragEnter = (event: DragEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+  };
+
+  const onFileDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+
+    console.log(
+      "event.dataTransfer =====> ",
+      event.dataTransfer?.getData("data")
+    );
+  };
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="flex">
+      <div className="w-[300px] h-screen bg-[#404040]">
+        <div
+          className="w-[100px] h-[100px] bg-white"
+          draggable="true"
+          onDragStart={(event) => {
+            event.dataTransfer?.setData("componentType", "testtttt");
+          }}
+        >
+          test
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+      <div className="flex-1 bg-green-100 p-[20px]">
+        <div
+          className="h-full bg-white rounded-[10px]"
+          onDragEnter={onDragEnter}
+          onDragOver={onDragOver}
+          onDrop={onFileDrop}
+          onClick={() => console.log("event.dataTransfer")}
+        ></div>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </div>
+  );
 }
 
-export default App
+export default App;
