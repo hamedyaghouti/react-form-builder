@@ -1,7 +1,83 @@
 import React, { DragEvent } from "react";
 import "./App.css";
 
-export const schema = {
+type TValidation = { type: "Required"; message: string };
+
+type TElement = ILabel | IRadioBox | THr | IRow;
+
+type TIsContainer = IRow | IColumn | ISchema;
+
+interface ILabel {
+  type: "Label";
+  typePrefix: "lbl";
+  isContainer: false;
+  uniqueId: string;
+  value: string;
+  size: "md";
+  color: string;
+  validations: TValidation[];
+}
+
+interface IRadioBox {
+  type: "RadioBox";
+  typePrefix: "rdo";
+  key: string;
+  isContainer: false;
+  label: string;
+  values: {
+    id: string;
+    label: string;
+    value: string;
+    active: boolean;
+  }[];
+  direction: "row" | "column";
+  validations: TValidation[];
+  summeries: [];
+  uniqueId: string;
+}
+
+interface THr {
+  type: "Hr";
+  typePrefix: "hr";
+  isContainer: false;
+  uniqueId: string;
+}
+
+interface IRow {
+  type: "Row";
+  typePrefix: "rw";
+  columns: 1 | 2 | 3;
+  columnType: "Left" | "Right";
+  isContainer: true;
+  uniqueId: string;
+  title: string;
+  items: IColumn[];
+}
+
+interface IColumn {
+  type: "Column";
+  typePrefix: "col";
+  isContainer: true;
+  uniqueId: string;
+  size: "md";
+  width: 8 | 4;
+  items: TElement[];
+}
+
+interface ISchema {
+  type: "form";
+  typePrefix: "frm";
+  name: string;
+  system: string;
+  language: "fa" | "en";
+  direction: "rtl" | "ltr";
+  version: string;
+  key: string;
+  uniqueId: string;
+  items: Array<TElement>;
+}
+
+export const schema: ISchema = {
   type: "form",
   typePrefix: "frm",
   name: "ارزیابی مدیر - ارزیاب زیرمجموعه",
@@ -17,14 +93,14 @@ export const schema = {
       typePrefix: "rw",
       columns: 2,
       columnType: "Left",
-      isContaner: true,
+      isContainer: true,
       uniqueId: "cf90d3dc10fb",
       title: "2 ستون",
       items: [
         {
           type: "Column",
           typePrefix: "col",
-          isContaner: true,
+          isContainer: true,
           uniqueId: "040b4ec25e72",
           size: "md",
           width: 4,
@@ -32,7 +108,7 @@ export const schema = {
             {
               type: "Label",
               typePrefix: "lbl",
-              isContaner: false,
+              isContainer: false,
               uniqueId: "4a76bd7d3a41",
               value: "1- نظم و انضباط كاری:",
               size: "md",
@@ -44,7 +120,7 @@ export const schema = {
         {
           type: "Column",
           typePrefix: "col",
-          isContaner: true,
+          isContainer: true,
           uniqueId: "8ed17358317c",
           size: "md",
           width: 8,
@@ -52,7 +128,7 @@ export const schema = {
             {
               type: "Label",
               typePrefix: "lbl",
-              isContaner: false,
+              isContainer: false,
               uniqueId: "77a2c82792e5",
               value: "حضور منظم، مرتب بودن میزكار و ...",
               size: "md",
@@ -67,7 +143,7 @@ export const schema = {
       type: "RadioBox",
       typePrefix: "rdo",
       key: "Discipline",
-      isContaner: false,
+      isContainer: false,
       label: ".",
       values: [
         {
@@ -109,24 +185,11 @@ export const schema = {
     {
       type: "Hr",
       typePrefix: "hr",
-      isContaner: false,
+      isContainer: false,
       uniqueId: "e7a8b7dffb7d",
     },
   ],
 };
-
-interface ISchema {
-  // type: "form",
-  type: string;
-  // typePrefix: "frm",
-  typePrefix: string;
-  version: number;
-  name: string;
-  uniqueId: string;
-  items: Array<ISchema>;
-}
-
-type IProps = "type" | "name" | "typePrefix" | "items" | "version" | "uniqueId";
 
 function App() {
   const [formSchema, setFormSchema] = React.useState({
@@ -138,6 +201,20 @@ function App() {
       uniqueId: "frm_r57d765a2428",
       items: [],
     },
+  });
+
+  const mainContainerRef = React.useRef(null);
+  const formSchemaRef = React.useRef<ISchema>({
+    type: "form",
+    typePrefix: "frm",
+    name: "ارتقا مبالغ تراکنش های پایانه فروش - دی ماه",
+    system: "هوشمند سپهر",
+    language: "fa",
+    direction: "rtl",
+    version: "1.0.0",
+    key: "ManagerSubalternEvaluator",
+    uniqueId: "frm_r57d765a2428",
+    items: [],
   });
 
   const getObject: (schema: ISchema, uniqueId: string) => object | null = (
@@ -166,6 +243,7 @@ function App() {
     }
     return result;
   };
+
   const onDragOver = (event: DragEvent<HTMLDivElement>) => {
     event.stopPropagation();
     event.preventDefault();
@@ -181,17 +259,59 @@ function App() {
 
     console.log(
       "event.dataTransfer =====> ",
-      event.dataTransfer?.getData("data")
+      event.dataTransfer?.getData("componentType")
     );
   };
+
+  const setChildren: (
+    schema: ISchema | Array<TElement | IColumn> | TElement | IColumn,
+    uniqueId: TIsContainer["uniqueId"],
+    children: TElement,
+    index?: null
+  ) => void = (schema, uniqueId, children, index = null) => {
+    let result = null;
+    if (schema instanceof Array) {
+      for (let i = 0; i < schema.length; i++) {
+        result = setChildren(schema[i], uniqueId, children, index);
+      }
+    } else {
+      for (const prop in schema) {
+        if (prop == "uniqueId" && schema["uniqueId"] == uniqueId) {
+          if (index) {
+            (schema as TIsContainer).items?.splice(index, 0, children);
+          } else {
+            ((schema as TIsContainer).items as Array<TElement | IColumn>).push(
+              children
+            );
+          }
+          return schema;
+        }
+        if (
+          (schema as any)[prop] instanceof Object ||
+          (schema as any)[prop] instanceof Array
+        ) {
+          result = setChildren(
+            (schema as any)[prop],
+            uniqueId,
+            children,
+            index
+          );
+        }
+      }
+    }
+    return result;
+  };
+
   return (
     <div className="flex">
       <div className="w-[300px] h-screen bg-[#404040]">
         <div
           className="w-[100px] h-[100px] bg-white"
           draggable="true"
+          data-type="text-input"
           onDragStart={(event) => {
-            event.dataTransfer?.setData("componentType", "testtttt");
+            console.log("event.target ========> ", event.target);
+            event.dataTransfer?.setData("componentType", "text-input");
           }}
         >
           test
@@ -204,6 +324,7 @@ function App() {
           onDragOver={onDragOver}
           onDrop={onFileDrop}
           onClick={() => console.log("event.dataTransfer")}
+          ref={mainContainerRef}
           id="frm_r57d765a2428"
         ></div>
       </div>
